@@ -115,7 +115,8 @@ def process_input_fcpxml():
         clipOffset = convert_xml_t(node.get('offset')) 
         clipStart =  convert_xml_t(node.get('start'))
         for child in node.findall('title'):
-            if child.get('name') == 'RT Adjustment Layer':
+#            if child.get('name') == 'RT Adjustment Layer':
+            if child.get('text') is None
                 continue
             offset = clipOffset - clipStart + convert_xml_t(child.get('offset')) 
             duration = convert_xml_t(child.get('duration'))
