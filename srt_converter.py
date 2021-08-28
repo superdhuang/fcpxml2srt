@@ -36,6 +36,8 @@ framerate_tuple = (1001, 30000) # default to 29.97fps
 ## TIME STAMP CONVERSION METHODS
 
 def convert_xml_t(s, return_tuple=False):
+    if s is None:
+        return float(0)
     if '/' not in s:    # whole seconds
         return float(s[:-1])
     components = s.split('/')
@@ -59,6 +61,14 @@ def convert_t_srt(t):
     m = int(t_int / 60) % 60
     h = int(t_int / 3600)
     return f'{h:02}:{m:02}:{s:02},{ms:03}'
+
+def convert_t_chapter(t):
+    t_int = int(t)
+    ms = int((t - t_int) * 1000)
+    s = t_int % 60
+    m = int(t_int / 60) % 60
+    h = int(t_int / 3600)
+    return f'{m:02}:{s:02}'
 
 def convert_srt_t(arr):
     return float(arr[0]) * 3600. + float(arr[1]) * 60. + \
@@ -103,8 +113,11 @@ def process_input_fcpxml():
     data = []
     for node in n_spine.findall('asset-clip'):
         clipOffset = convert_xml_t(node.get('offset')) 
+        clipStart =  convert_xml_t(node.get('start'))
         for child in node.findall('title'):
-            offset = clipOffset + convert_xml_t(child.get('offset')) 
+            if child.get('name') == 'RT Adjustment Layer':
+                continue
+            offset = clipOffset - clipStart + convert_xml_t(child.get('offset')) 
             duration = convert_xml_t(child.get('duration'))
             end = offset + duration
             n_text = child.find('text')[0].text
@@ -126,6 +139,11 @@ def process_output_srt(data):
 
     f.close()
 
+def process_output_chapter(data):
+
+    for line in data:
+        t_start, t_end, text = line
+        print(convert_t_chapter(t_start) + ' ' + convert_text(text))
 
 def process_output_fcpxml(data):
     xml = ET.parse(XML_TEMPLATE)
@@ -225,4 +243,6 @@ elif FILE_OUT.endswith('.fcpxml'):
     process_output_fcpxml(data)
 else:
     raise Exception('unsupported output file type: ' + FILE_OUT)
+
+process_output_chapter(data)
 
