@@ -3,6 +3,8 @@
 A python script that converts between .srt files and .fcpxml files to create/extract embedded captions for Final Cut Pro.
 Optional feature to convert between Simplified/Traditional Chinese (using OpenCC).
 
+Also print out youtube chapter format
+
 ## Getting Started
 
 You only need `srt_converter.py` and `Template.xml` (if converting to .fcpxml).
