@@ -1,4 +1,4 @@
-# .SRT .FCPXML CONVERTER
+# .SRT .FCPXML CONVERTER AND YOUTUBE CHAPTER GENERATOR
 
 A python script that converts between .srt files and .fcpxml files to create/extract embedded captions for Final Cut Pro.
 Optional feature to convert between Simplified/Traditional Chinese (using OpenCC).
