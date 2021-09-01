@@ -12,6 +12,7 @@ import argparse
 parser = argparse.ArgumentParser(description="Convert between .srt and .fcpxml files for subtitles creation.")
 parser.add_argument('-i', '--input', required=True, help="name for the input file (.srt or .fcpxml)")
 parser.add_argument('-o', '--output', required=True, help="name for the ouput file (.srt or .fcpxml)")
+parser.add_argument('-m', '--marker', action="store_true" , help="Read chapter marker instead of title")
 parser.add_argument('-c', '--convert', 
     help="(optional) to use OpenCC to convert between Simplified/Traditional Chinese. Please specify the OpenCC configurations (e.g., s2t, t2s)")
 parser.add_argument('-t', '--template', default='Template.xml',
@@ -114,16 +115,22 @@ def process_input_fcpxml():
     for node in n_spine.findall('asset-clip'):
         clipOffset = convert_xml_t(node.get('offset')) 
         clipStart =  convert_xml_t(node.get('start'))
-        for child in node.findall('title'):
-#            if child.get('name') == 'RT Adjustment Layer':
-#                continue
-            if child.find('text') is None:
-                continue
-            offset = clipOffset - clipStart + convert_xml_t(child.get('offset')) 
-            duration = convert_xml_t(child.get('duration'))
-            end = offset + duration
-            n_text = child.find('text')[0].text
-            data.append((offset, end, n_text))
+        if args.marker:
+            for child in node.findall('chapter-marker'):
+                offset = clipOffset - clipStart + convert_xml_t(child.get('start')) 
+                duration = convert_xml_t(child.get('posterOffset'))
+                end = offset + duration
+                n_text = child.get('value')
+                data.append((offset, end, n_text))
+        else:
+            for child in node.findall('title'):
+                if child.find('text') is None:
+                    continue
+                offset = clipOffset - clipStart + convert_xml_t(child.get('offset')) 
+                duration = convert_xml_t(child.get('duration'))
+                end = offset + duration
+                n_text = child.find('text')[0].text
+                data.append((offset, end, n_text))
 
     return data
 
