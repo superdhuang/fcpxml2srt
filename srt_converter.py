@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import re
 import copy
 import argparse
+import time
 
 parser = argparse.ArgumentParser(description="Convert between .srt and .fcpxml files for subtitles creation.")
 parser.add_argument('-i', '--input', required=True, help="name for the input file (.srt or .fcpxml)")
@@ -112,7 +113,7 @@ def process_input_fcpxml():
     n_spine = n_sequence[0]
 
     data = []
-    for node in n_spine.findall('asset-clip'):
+    for node in n_spine.findall('clip') + n_spine.findall('asset-clip'):
         clipOffset = convert_xml_t(node.get('offset')) 
         clipStart =  convert_xml_t(node.get('start'))
         if args.marker:
@@ -129,7 +130,9 @@ def process_input_fcpxml():
                 offset = clipOffset - clipStart + convert_xml_t(child.get('offset')) 
                 duration = convert_xml_t(child.get('duration'))
                 end = offset + duration
-                n_text = child.find('text')[0].text
+                n_text = ""
+                for c in child.find('text'):
+                    n_text = n_text.replace('\n','/') + c.text
                 data.append((offset, end, n_text))
 
     return data
@@ -237,6 +240,7 @@ if FILE_IN.endswith('.srt'):
     event_name = FILE_IN[:-4]
 elif FILE_IN.endswith('.fcpxml'):
     data = process_input_fcpxml()
+    data.sort(key=lambda x: x[0])
     event_name = FILE_IN[:-7]
 else:
     raise Exception('unsupported input file type: ' + FILE_IN)
