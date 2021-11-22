@@ -131,9 +131,11 @@ def process_input_fcpxml():
                 duration = convert_xml_t(child.get('duration'))
                 end = offset + duration
                 n_text = ""
-                for c in child.find('text'):
-                    n_text = n_text.replace('\n','/') + c.text
-                data.append((offset, end, n_text))
+                for c in child.findall('text'):
+                    for d in c:
+                        if d.text is not None:
+                          n_text = n_text.replace('\n','/') + '/' + d.text
+                data.append((offset, end, n_text[1:]))
 
     return data
 
