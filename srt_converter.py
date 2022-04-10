@@ -113,7 +113,7 @@ def process_input_fcpxml():
     n_spine = n_sequence[0]
 
     data = []
-    for node in n_spine.findall('clip') + n_spine.findall('asset-clip'):
+    for node in n_spine.findall('clip') + n_spine.findall('asset-clip') + n_spine.findall('transition'):
         clipOffset = convert_xml_t(node.get('offset')) 
         clipStart =  convert_xml_t(node.get('start'))
         if args.marker:
