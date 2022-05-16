@@ -70,6 +70,8 @@ def convert_t_chapter(t):
     s = t_int % 60
     m = int(t_int / 60) % 60
     h = int(t_int / 3600)
+    if h: 
+        return f'{h:02}:{m:02}:{s:02}'
     return f'{m:02}:{s:02}'
 
 def convert_srt_t(arr):
@@ -119,13 +121,27 @@ def process_input_fcpxml():
 # |---------------|-----|--------------|-------|
 # |<--clipStart-->|     ^chap-start    ^End
 #                       |<-postOffset->|                                     
-
-    for node in n_spine.findall('.//clip') + n_spine.findall('.//asset-clip') + n_spine.findall('transition'):
+    for node in n_spine.findall('clip') + n_spine.findall('asset-clip') + n_spine.findall('transition'):
         clipOffset = convert_xml_t(node.get('offset')) 
         clipStart =  convert_xml_t(node.get('start'))
+
+        # scan nested clip and asset-clip
+        for nodeNested in node.findall('.//clip') + node.findall('.//asset-clip'):
+            clipOffsetNested = convert_xml_t(nodeNested.get('offset')) 
+            clipStartNested =  convert_xml_t(nodeNested.get('start'))
+            for child in nodeNested.findall('chapter-marker'):
+                offset = clipOffset - clipStart + convert_xml_t(child.get('start')) 
+                duration = convert_xml_t(child.get('posterOffset'))
+                end = offset + duration
+                n_text = child.get('value')
+                data.append((offset, end, n_text))
+
         if args.marker:
             for child in node.findall('chapter-marker'):
-                offset = clipOffset - clipStart + convert_xml_t(child.get('start')) 
+                if node.tag == 'transition':
+                    offset = clipOffset - clipStart
+                else:
+                    offset = clipOffset - clipStart + convert_xml_t(child.get('start')) 
                 duration = convert_xml_t(child.get('posterOffset'))
                 end = offset + duration
                 n_text = child.get('value')
@@ -143,7 +159,6 @@ def process_input_fcpxml():
                         if d.text is not None:
                           n_text = n_text.replace('\n','/') + '/' + d.text
                 data.append((offset, end, n_text[1:]))
-
     return data
 
 def process_output_srt(data):
