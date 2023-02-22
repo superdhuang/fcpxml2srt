@@ -13,7 +13,10 @@ import time
 parser = argparse.ArgumentParser(description="Convert between .srt and .fcpxml files for subtitles creation.")
 parser.add_argument('-i', '--input', required=True, help="name for the input file (.srt or .fcpxml)")
 parser.add_argument('-o', '--output', required=True, help="name for the ouput file (.srt or .fcpxml)")
-parser.add_argument('-m', '--marker', action="store_true" , help="Read chapter marker instead of title")
+parser.add_argument('-m', '--marker', action="store_true" , help="Read all marker instead of title")
+parser.add_argument('-todo', '--todo', action="store_true" , help="generate todo timecode")
+parser.add_argument('-cm', '--chmarker', action="store_true" , help="generate todo chapter marder timecode")
+parser.add_argument('-sm', '--stdmarker', action="store_true" , help="generate standard chapter marder timecode")
 parser.add_argument('-c', '--convert', 
     help="(optional) to use OpenCC to convert between Simplified/Traditional Chinese. Please specify the OpenCC configurations (e.g., s2t, t2s)")
 parser.add_argument('-t', '--template', default='Template.xml',
@@ -134,9 +137,19 @@ def process_input_fcpxml():
                 duration = convert_xml_t(child.get('posterOffset'))
                 end = offset + duration
                 n_text = child.get('value')
-                data.append((offset, end, n_text))
-
-        if args.marker:
+                data.append((offset, end, n_text, 'chMarker'))
+            for child in nodeNested.findall('marker'):
+                offset = clipOffset - clipStart + convert_xml_t(child.get('start')) 
+                duration = convert_xml_t(child.get('posterOffset'))
+                end = offset + duration
+                n_text = child.get('value')
+                if 'completed' in child.attrib:
+                    data.append((offset, end, n_text, 'todo'))
+                else:
+                    data.append((offset, end, n_text, 'stdMarker'))
+        # end scan nested clip and asset-clip
+        
+        if args.marker or args.chmarker or args.stdmarker or args.todo:
             for child in node.findall('chapter-marker'):
                 if node.tag == 'transition':
                     offset = clipOffset - clipStart
@@ -145,7 +158,19 @@ def process_input_fcpxml():
                 duration = convert_xml_t(child.get('posterOffset'))
                 end = offset + duration
                 n_text = child.get('value')
-                data.append((offset, end, n_text))
+                data.append((offset, end, n_text, 'chMarker'))
+            for child in node.findall('marker'):
+                if node.tag == 'transition':
+                    offset = clipOffset - clipStart
+                else:
+                    offset = clipOffset - clipStart + convert_xml_t(child.get('start')) 
+                duration = convert_xml_t(child.get('posterOffset'))
+                end = offset + duration
+                n_text = child.get('value')
+                if 'completed' in child.attrib:
+                    data.append((offset, end, n_text, 'todo'))
+                else:
+                    data.append((offset, end, n_text, 'stdMarker'))
         else:
             for child in node.findall('title'):
                 if child.find('text') is None:
@@ -166,7 +191,7 @@ def process_output_srt(data):
 
     counter = 1
     for line in data:
-        t_start, t_end, text = line
+        t_start, t_end, text, markerType = line
         f.write (f'{counter}\n')
         f.write (convert_t_srt(t_start) + ' --> ' + convert_t_srt(t_end) + '\n')
         f.write (convert_text(text) + '\n')
@@ -176,10 +201,14 @@ def process_output_srt(data):
     f.close()
 
 def process_output_chapter(data):
-
     for line in data:
-        t_start, t_end, text = line
-        print(convert_t_chapter(t_start) + ' ' + convert_text(text))
+        t_start, t_end, text, markerType = line
+        if (args.chmarker and markerType == 'chMarker') or args.marker:
+            print(convert_t_chapter(t_start) + ' ' + convert_text(text))
+        elif (args.todo and markerType == 'todo') or args.marker:
+            print(convert_t_chapter(t_start) + ' ' + convert_text(text))
+        elif (args.stdmarker and markerType == 'stdMarker') or args.marker:
+            print(convert_t_chapter(t_start) + ' ' + convert_text(text))
 
 def process_output_fcpxml(data):
     xml = ET.parse(XML_TEMPLATE)
